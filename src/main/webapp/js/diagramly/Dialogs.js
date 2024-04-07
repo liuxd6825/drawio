@@ -2195,7 +2195,11 @@ var ParseDialog = function(editorUi, title, defaultType)
 					}
 				}, function(e)
 				{
-					mxMermaidToDrawio.resetListeners();
+					if (typeof mxMermaidToDrawio !== 'undefined')
+					{
+						mxMermaidToDrawio.resetListeners();
+					}
+					
 					editorUi.handleError(e);
 				});
 			}
@@ -2908,7 +2912,10 @@ var NewDialog = function(editorUi, compact, showName, callback, createOnly, canc
 		{
 			mxEvent.addGestureListeners(div.parentNode.parentNode, mxUtils.bind(this, function(evt)
 			{
-				editorUi.sidebar.hideTooltip();
+				if (editorUi.sidebar != null)
+				{
+					editorUi.sidebar.hideTooltip();
+				}
 			}), null, null);
 		}
 	};
@@ -7557,11 +7564,33 @@ var DraftDialog = function(editorUi, title, xml, editFn, discardFn, editLabel, d
 	
 	var draftSelected = mxUtils.bind(this, function()
 	{
-		doc = mxUtils.parseXml(drafts[select.value].data);
-		node = editorUi.editor.extractGraphModel(doc.documentElement, true);
-		currentPage = 0;
-			
-		this.init();
+		if (select.value == '-1')
+		{
+			select.value = select.options[0].value;
+			draftSelected();
+
+			// Discard all drafts
+			editorUi.confirm(mxResources.get('areYouSure'), null, mxUtils.bind(this, async function()
+			{
+				for (var i = 0; i < drafts.length; i++)
+				{
+					discardFn.apply(this, [i, mxUtils.bind(this, function()
+					{
+						// Do nothing
+					})]);
+				}
+
+				editorUi.hideDialog(true);
+			}), mxResources.get('no'), mxResources.get('yes'));
+		}
+		else
+		{
+			doc = mxUtils.parseXml(drafts[select.value].data);
+			node = editorUi.editor.extractGraphModel(doc.documentElement, true);
+			currentPage = 0;
+				
+			this.init();
+		}
 	});
 	
 	if (drafts != null)
@@ -7583,9 +7612,13 @@ var DraftDialog = function(editorUi, title, xml, editFn, discardFn, editLabel, d
 			
 			select.appendChild(opt);
 		}
-		
+
+		// Delete all option
+		var opt = document.createElement('option');
+		opt.setAttribute('value', '-1');
+		mxUtils.write(opt, mxResources.get('deleteAll'));
+		select.appendChild(opt);
 		titleDiv.appendChild(select);
-		
 		mxEvent.addListener(select, 'change', draftSelected);
 	}
 	
@@ -7675,23 +7708,26 @@ var DraftDialog = function(editorUi, title, xml, editFn, discardFn, editLabel, d
 
 	var restoreBtn = mxUtils.button(discardLabel || mxResources.get('discard'), function()
 	{
-		discardFn.apply(this, [select.value, mxUtils.bind(this, function()
+		editorUi.confirm(mxResources.get('areYouSure'), null, mxUtils.bind(this, async function()
 		{
-			if (select.parentNode != null)
+			discardFn.apply(this, [select.value, mxUtils.bind(this, function()
 			{
-				select.options[select.selectedIndex].parentNode.removeChild(select.options[select.selectedIndex]);
-				
-				if (select.options.length > 0)
+				if (select.parentNode != null)
 				{
-					select.value = select.options[0].value;
-					draftSelected();
+					select.options[select.selectedIndex].parentNode.removeChild(select.options[select.selectedIndex]);
+					
+					if (select.options.length > 1)
+					{
+						select.value = select.options[0].value;
+						draftSelected();
+					}
+					else
+					{
+						editorUi.hideDialog(true);
+					}
 				}
-				else
-				{
-					editorUi.hideDialog(true);
-				}
-			}
-		})]);
+			})]);
+		}), mxResources.get('no'), mxResources.get('yes'));
 	});
 	restoreBtn.className = 'geBtn';
 	
@@ -11532,10 +11568,18 @@ var LibraryDialog = function(editorUi, name, library, initialImages, file, mode,
 						
 						for (var i = 0; i < pages.length; i++)
 						{
-							var temp = mxUtils.getTextContent(pages[i]);
-							var cells = editorUi.stringToCells(Graph.decompress(temp));
-							var size = editorUi.editor.graph.getBoundingBoxFromGeometry(cells);
-							addButton(null, null, 0, 0, 0, 0, {xml: temp, w: size.width, h: size.height});
+							var xml = Editor.getDiagramNodeXml(pages[i]);
+							var cells = editorUi.stringToCells(xml);
+
+							if (cells.length > 0)
+							{
+								var size = editorUi.editor.graph.getBoundingBoxFromGeometry(cells);
+
+								if (size != null)
+								{
+									addButton(null, null, 0, 0, 0, 0, {xml: xml, w: size.width, h: size.height});
+								}
+							}
 						}
 						
 						done = true;
@@ -11545,7 +11589,7 @@ var LibraryDialog = function(editorUi, name, library, initialImages, file, mode,
 				{
 					if (window.console != null)
 					{
-						console.log('Error in library dialog: ' + e);
+						console.error('Error in library dialog: ' + e);
 					}
 				}
 
@@ -12904,7 +12948,30 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 		file.getTitle() : editorUi.defaultFilename;
 	var isPng = /(\.png)$/i.test(filename);
 	var isSvg = /(\.svg)$/i.test(filename);
-	var apply = function() { };
+	var apply = function(success, error)
+	{
+		success();
+	};
+
+	function addApply(fn)
+	{
+		var prevApply = apply;
+
+		apply = function(success, error)
+		{
+			try
+			{
+				fn(function()
+				{
+					prevApply(success, error);
+				}, error);
+			}
+			catch (e)
+			{
+				error(e);
+			}
+		};
+	};
 
 	if (isPng || isSvg)
 	{
@@ -12976,8 +13043,8 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 				document.execCommand('selectAll', false, null);
 			}
 		};
-		
-		apply = function()
+
+		addApply(function(success, error)
 		{
 			if (editorUi.fileNode != null)
 			{
@@ -12989,9 +13056,9 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 					file.fileChanged();
 				}
 			}
-			
-			editorUi.hideDialog();
-		};
+
+			success();
+		});
 	}
 	else if (!/(\.html)$/i.test(filename) &&
 		!/(\.svg)$/i.test(filename))
@@ -13027,22 +13094,30 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 		{
 			compressedInput.focus();
 		};
-		
-		apply = function()
+
+		addApply(function(success, error)
 		{
 			if (editorUi.fileNode != null && initialCompressed != compressedInput.checked)
 			{
-				editorUi.fileNode.setAttribute('compressed',
-					(compressedInput.checked) ? 'true' : 'false');
-				
-				if (file != null)
+				window.setTimeout(function()
 				{
-					file.fileChanged();
-				}
+					editorUi.fileNode.setAttribute('compressed',
+						(compressedInput.checked) ? 'true' : 'false');
+					
+					if (file != null)
+					{
+						file.compressionChanged(compressedInput.checked);
+						file.fileChanged();
+					}
+
+					success();
+				}, 0);
 			}
-			
-			editorUi.hideDialog();
-		};
+			else
+			{
+				success();
+			}
+		});
 	}
 	
 	if (file != null && file.isRealtimeOptional())
@@ -13069,28 +13144,17 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 			collabInput.defaultChecked = true;
 		}
 
-		prevApply = apply;
-		apply = function()
+		addApply(function(success, error)
 		{
-			prevApply();
-			editorUi.hideDialog();
-
 			if (collabInput.checked != initialCollab)
 			{
-				if (editorUi.spinner.spin(document.body, mxResources.get('updatingDocument')))
-				{
-					file.setRealtimeEnabled(collabInput.checked, mxUtils.bind(this, function(resp)
-					{
-						editorUi.spinner.stop();
-					}), mxUtils.bind(this, function(resp)
-					{
-						editorUi.spinner.stop();
-						editorUi.showError(mxResources.get('error'), (resp != null && resp.error != null) ?
-							resp.error.message : mxResources.get('unknownError'), mxResources.get('ok'));
-					}));
-				}
+				file.setRealtimeEnabled(collabInput.checked, success, error);
 			}
-		};
+			else
+			{
+				success();
+			}
+		});
 
 		this.init = (this.init != null) ? this.init : function()
 		{
@@ -13194,7 +13258,21 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 
 	this.init = (this.init != null) ? this.init : function() { };
 
-	var genericBtn = mxUtils.button(mxResources.get('apply'), apply);
+	var genericBtn = mxUtils.button(mxResources.get('apply'), function()
+	{
+		if (editorUi.spinner.spin(document.body, mxResources.get('updatingDocument')))
+		{
+			apply(function()
+			{
+				editorUi.spinner.stop();
+				editorUi.hideDialog();
+			}, function(e)
+			{
+				editorUi.spinner.stop();
+				editorUi.handleError(e, mxResources.get('error'));
+			});
+		}
+	});
 	genericBtn.className = 'geBtn gePrimaryBtn';
 	
 	row = document.createElement('tr');
@@ -13202,7 +13280,7 @@ var FilePropertiesDialog = function(editorUi, publicLink)
 	td.colSpan = 2;
 	td.style.paddingTop = '20px';
 	td.style.whiteSpace = 'nowrap';
-	td.setAttribute('align', 'center');
+	td.setAttribute('align', 'right');
 	
 	var cancelBtn = mxUtils.button(mxResources.get('cancel'), function()
 	{

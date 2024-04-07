@@ -706,6 +706,7 @@
 					}
 
 					var status = document.createElement('div');
+					status.className = 'geSpinnerStatus';
 					status.style.position = 'absolute';
 					status.style.whiteSpace = 'nowrap';
 					status.style.background = '#4B4243';
@@ -1343,8 +1344,8 @@
 		{
 			// Updates current page XML if selection is ignored
 			EditorUi.removeChildNodes(this.currentPage.node);
-			mxUtils.setTextContent(this.currentPage.node, Graph.compressNode(node));
-
+			this.currentPage.node.appendChild(node);
+			
 			// Creates a clone of the file node for processing
 			node = this.fileNode.cloneNode(false);
 
@@ -1357,8 +1358,7 @@
 				
 				if (modelNode == null && uncompressed)
 				{
-					var text = mxUtils.trim(mxUtils.getTextContent(pageNode));
-					clone = pageNode.cloneNode(false);
+					var text = mxUtils.getNodeValue(pageNode);
 					
 					if (text.length > 0)
 					{
@@ -1366,6 +1366,7 @@
 						
 						if (tmp != null && tmp.length > 0)
 						{
+							clone = pageNode.cloneNode(false);
 							clone.appendChild(mxUtils.parseXml(tmp).documentElement);
 						}
 					}
@@ -1404,7 +1405,7 @@
 							this.editor.graph.saveViewState(page.viewState,
 								temp, null, resolveReferences);
 							EditorUi.removeChildNodes(currNode);
-							mxUtils.setTextContent(currNode, Graph.compressNode(temp));
+							currNode.appendChild(temp);
 
 							// Marks the page as up-to-date
 							delete page.needsUpdate;
@@ -1437,7 +1438,7 @@
 								this.editor.graph.saveViewState(page.viewState,
 									temp, null, resolveReferences);
 								currNode = currNode.cloneNode(false);
-								mxUtils.setTextContent(currNode, Graph.compressNode(temp));
+								currNode.appendChild(temp);
 							}
 						}
 					}
@@ -3997,7 +3998,11 @@
 												{
 													var cells = this.stringToCells(Editor.getDiagramNodeXml(pages[i]));
 													var size = this.editor.graph.getBoundingBoxFromGeometry(cells);
-													addCells(cells, new mxRectangle(0, 0, size.width, size.height), evt);
+
+													if (size != null)
+													{
+														addCells(cells, new mxRectangle(0, 0, size.width, size.height), evt);
+													}
 												}
 												
 												done = true;
@@ -4101,19 +4106,14 @@
 				this.addSelectionToScratchpad = addSelection;
 			}
 			
-			if (!this.isOffline() && file.title == '.scratchpad' && EditorUi.scratchpadHelpLink != null)
+			if (!this.isOffline() && file.title == '.scratchpad' &&
+				EditorUi.scratchpadHelpLink != null)
 			{
-				var link = document.createElement('span');
-				link.setAttribute('title', mxResources.get('help'));
-				link.style.cssText = 'color:#a3a3a3;text-decoration:none;margin-right:2px;cursor:pointer;';
-				mxUtils.write(link, '?');
-				
-				mxEvent.addGestureListeners(link, mxUtils.bind(this, function(evt)
-				{
-					this.openLink(EditorUi.scratchpadHelpLink);
-					mxEvent.consume(evt);
-				}));
-				
+				var link = this.createHelpIcon(EditorUi.scratchpadHelpLink);
+				var img = link.getElementsByTagName('img')[0];
+				link.style.marginRight = '1px';
+				img.style.marginTop = '-2px';
+				img.style.opacity = '';
 				buttons.insertBefore(link, buttons.firstChild);
 			}
 		}
@@ -7962,6 +7962,24 @@
 	 */
 
 	/**
+	 * Adds the local page IDs to the given mapping.
+	 */
+	EditorUi.prototype.addLocalPagesToMapping = function(mapping)
+	{
+		mapping = (mapping != null) ? mapping : {};
+
+		if (this.pages != null)
+		{
+			for (var i = 0; i < this.pages.length; i++)
+			{
+				mapping[this.pages[i].getId()] = this.pages[i].getId();
+			}
+		}
+
+		return mapping;
+	};
+
+	/**
 	 * Imports the given XML into the existing diagram.
 	 */
 	EditorUi.prototype.importXml = function(xml, dx, dy, crop, noErrorHandling, addNewPage, applyDefaultStyles)
@@ -8056,6 +8074,8 @@
 						
 						if (cells != null)
 						{
+							this.addLocalPagesToMapping(mapping);
+
 							for (var i = 0; i < cells.length; i++)
 							{
 								this.updatePageLinksForCell(mapping, cells[i]);
@@ -10381,18 +10401,18 @@
 		else
 		{
 			this.showDialog(new ConfirmDialog(this, mxResources.get('resizeLargeImages'),
-			function(remember)
-			{
-				wrapper(remember, true);
-			},
-			function(remember)
-			{
-				wrapper(remember, false);
-			}, mxResources.get('resize'), mxResources.get('actualSize'),
-			'<img style="margin-top:8px;" src="' + Editor.loResImage + '"/>',
-			'<img style="margin-top:8px;" src="' + Editor.hiResImage + '"/>',
-			isLocalStorage || mxClient.IS_CHROMEAPP).container, 340,
-			(isLocalStorage || mxClient.IS_CHROMEAPP) ? 220 : 200, true, true);
+				function(remember)
+				{
+					wrapper(remember, true);
+				},
+				function(remember)
+				{
+					wrapper(remember, false);
+				}, mxResources.get('resize'), mxResources.get('actualSize'),
+				'<img style="margin-top:8px;" src="' + Editor.loResImage + '"/>',
+				'<img style="margin-top:8px;" src="' + Editor.hiResImage + '"/>',
+				isLocalStorage || mxClient.IS_CHROMEAPP).container, 340,
+				(isLocalStorage || mxClient.IS_CHROMEAPP) ? 226 : 200, true, true);
 		}
 	};
 	
@@ -11814,6 +11834,16 @@
 			{
 				darkMode = true;
 			}
+		}
+
+		if (urlParams['high-contrast'] == '1')
+		{
+			this.setHighContrast(true);
+		}
+		else if (Editor.isSettingsEnabled() && !this.editor.graph.isLightboxView() &&
+			mxSettings.settings.highContrast != null)
+		{
+			this.setHighContrast(mxSettings.settings.highContrast);
 		}
 		
 		this.installSettings();
@@ -13513,6 +13543,66 @@
 	};
 
 	/**
+	 * Sets dark mode and persists the setting.
+	 */
+	EditorUi.prototype.setAndPersistHighContrast = function(value)
+	{
+		this.setHighContrast(value);
+
+		if (Editor.isSettingsEnabled())
+		{
+			mxSettings.settings.highContrast = value;
+			mxSettings.save();
+		}
+	};
+
+	/**
+	 * Sets dark mode and persists the setting.
+	 */
+	EditorUi.prototype.isHighContrast = function()
+	{
+		var highContrastStylesheet = document.getElementById('high-contrast-stylesheet');
+
+		if (highContrastStylesheet != null && window.matchMedia)
+		{
+			var media = highContrastStylesheet.getAttribute('media');
+
+			return media == 'all' || (media != 'not all' &&
+				window.matchMedia('(forced-colors: active)').matches);
+		}
+		else
+		{
+			return false;
+		}
+	};
+
+	/**
+	 * Sets dark mode and persists the setting.
+	 */
+	EditorUi.prototype.setHighContrast = function(value)
+	{
+		var highContrastStylesheet = document.getElementById('high-contrast-stylesheet');
+
+		if (highContrastStylesheet != null && window.matchMedia)
+		{
+			var match = window.matchMedia('(forced-colors: active)').matches;
+			var media = highContrastStylesheet.getAttribute('media');
+			var on = media == 'all' || (media != 'not all' && match);
+			
+			if (on && !value)
+			{
+				highContrastStylesheet.setAttribute('media', (match) ?
+					'not all' : '(forced-colors: active)');
+			}
+			else if (!on && value)
+			{
+				highContrastStylesheet.setAttribute('media', (match) ?
+					'(forced-colors: active)' : 'all');
+			}
+		}
+	};
+
+	/**
 	 * Dynamic change of dark mode.
 	 */
 	EditorUi.prototype.isRulerVisible = function()
@@ -13744,6 +13834,21 @@
 					else if (Editor.styleElt != null)
 					{
 						Editor.styleElt.innerHTML = Editor.createMinimalCss();
+					}
+				}
+				
+				var node = (mxUtils.isAncestorNode(document.body, this.container)) ?
+					this.container : this.editor.graph.container;
+			
+				if (node != null)
+				{
+					if (Editor.isDarkMode())
+					{
+						node.classList.add('geLegacyDarkMode');
+					}
+					else
+					{
+						node.classList.remove('geLegacyDarkMode');
 					}
 				}
 
@@ -15808,7 +15913,10 @@
 	
 						this.showDialog(dlg.container, 620, 460, true, false, mxUtils.bind(this, function(cancel)
 						{
-							this.sidebar.hideTooltip();
+							if (this.sidebar != null)
+							{
+								this.sidebar.hideTooltip();
+							}
 							
 							if (cancel)
 							{
@@ -19354,13 +19462,21 @@ var CommentsWindow = function(editorUi, x, y, w, h, saveCallback)
 	function showError(commentDiv)
 	{
 		commentDiv.style.border = '1px solid red';
-		commentDiv.removeChild(commentDiv.busyImg);
+
+		if (commentDiv.busyImg.parentNode == commentDiv)
+		{
+			commentDiv.removeChild(commentDiv.busyImg);
+		}
 	};
 	
 	function showDone(commentDiv)
 	{
 		commentDiv.style.border = '';
-		commentDiv.removeChild(commentDiv.busyImg);
+		
+		if (commentDiv.busyImg.parentNode == commentDiv)
+		{
+			commentDiv.removeChild(commentDiv.busyImg);
+		}
 	};
 
 	function addComment(comment, parentArr, parent, level, showResolved)
@@ -19388,7 +19504,9 @@ var CommentsWindow = function(editorUi, x, y, w, h, saveCallback)
 		
 		var userImg = document.createElement('img');
 		userImg.className = 'geCommentUserImg';
-		userImg.src = comment.user.pictureUrl || Editor.userImage;
+		userImg.src = (comment.user != null &&
+			comment.user.pictureUrl != null) ?
+			comment.user.pictureUrl : Editor.userImage;
 		headerDiv.appendChild(userImg);
 		
 		var headerTxt = document.createElement('div');
@@ -19397,7 +19515,8 @@ var CommentsWindow = function(editorUi, x, y, w, h, saveCallback)
 		
 		var usernameDiv = document.createElement('div');
 		usernameDiv.className = 'geCommentUsername';
-		mxUtils.write(usernameDiv, comment.user.displayName || '');
+		mxUtils.write(usernameDiv, (comment.user != null) ?
+			comment.user.displayName : mxResources.get('unknownUser'));
 		headerTxt.appendChild(usernameDiv);
 		
 		var dateDiv = document.createElement('div');
@@ -19528,7 +19647,9 @@ var CommentsWindow = function(editorUi, x, y, w, h, saveCallback)
 		
 		var user = editorUi.getCurrentUser();
 		
-		if (user != null && user.id == comment.user.id && !readOnly && !comment.isLocked)
+		if (user != null && comment.user != null &&
+			user.id == comment.user.id &&
+			!readOnly && !comment.isLocked)
 		{
 			addAction(mxResources.get('edit'), function()
 			{

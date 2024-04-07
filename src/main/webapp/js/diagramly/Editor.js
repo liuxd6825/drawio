@@ -242,7 +242,7 @@
 	 * Specifies if XML files should be compressed by default. Default is false.
 	 */
 	Editor.defaultCompressed = false;
-
+	
 	/**
 	 * Specifies if XML files should be compressed. Default is true.
 	 */
@@ -1666,16 +1666,21 @@
 	 */
 	Editor.getDiagramNodeXml = function(diagramNode)
 	{
-		var text = mxUtils.getTextContent(diagramNode);
+		var text = mxUtils.getNodeValue(diagramNode);
 		var xml = null;
 		
 		if (text.length > 0)
 		{
 			xml = Graph.decompress(text);
 		}
-		else if (diagramNode.firstChild != null)
+		else
 		{
-			xml = mxUtils.getXml(diagramNode.firstChild);
+			var temp = diagramNode.getElementsByTagName('mxGraphModel');
+
+			if (temp != null && temp.length > 0)
+			{
+				xml = mxUtils.getXml(temp[0]);
+			}
 		}
 		
 		return xml;
@@ -5291,9 +5296,11 @@
 
 					if (pName == 'id')
 					{
-						inp.style.width = '80%';
-						inp.style.position = 'absolute';
+						inp.style.width = '190px';
+						inp.style.position = 'relative';
 						inp.style.right = '6px';
+						inp.style.float = 'right';
+						inp.style.background = 'none';
 						inp.style.textAlign = 'right';
 						row.firstChild.setAttribute('colspan', '2');
 						inp.setAttribute('title', pValue);
@@ -5811,14 +5818,17 @@
 					
 					picker.innerText = '';
 					
-					for (var i = 0; i < colorsets.length; i++)
+					if (colorsets != null)
 					{
-						if (i > 0 && mxUtils.mod(i, 4) == 0)
+						for (var i = 0; i < colorsets.length; i++)
 						{
-							mxUtils.br(picker);
+							if (i > 0 && mxUtils.mod(i, 4) == 0)
+							{
+								mxUtils.br(picker);
+							}
+							
+							addButton(colorsets[i]);
 						}
-						
-						addButton(colorsets[i]);
 					}
 				});
 

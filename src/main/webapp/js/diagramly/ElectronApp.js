@@ -1121,13 +1121,8 @@ mxStencilRegistry.allowEval = false;
 					}), mxUtils.bind(this, function(index)
 					{
 						index = index || 0;
-					
-						// Discard draft
-						this.confirm(mxResources.get('areYouSure'), null, mxUtils.bind(this, async function()
-						{
-							await requestSync({action: 'deleteFile', file: drafts[index].path});
-							this.hideDialog();
-						}), mxResources.get('no'), mxResources.get('yes'));
+						await requestSync({action: 'deleteFile', file: drafts[index].path});
+						this.hideDialog();
 					}), null, null, null, (drafts.length > 1) ? drafts : null);
 					
 					this.showDialog(dlg.container, 640, 480, true, false);
@@ -1628,7 +1623,7 @@ mxStencilRegistry.allowEval = false;
 		}
 	};
 	
-	LocalFile.prototype.saveDraft = function()
+	LocalFile.prototype.saveDraft = function(data)
 	{
 		// Save draft only if file is not saved (prevents creating draft file after actual file is saved)
 		if (!this.isModified()) return;
@@ -1643,7 +1638,7 @@ mxStencilRegistry.allowEval = false;
 			electron.request({
 				action: 'saveDraft',
 				fileObject: this.fileObject,
-				data: this.ui.getFileData()
+				data: (data != null) ? data : this.ui.getFileData()
 			}, mxUtils.bind(this, function(draftFileName)
 			{
 				this.fileObject.draftFileName = draftFileName;

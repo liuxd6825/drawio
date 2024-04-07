@@ -3,6 +3,9 @@
 	--border-color: #dadce0;
 	--text-color: #707070;
 }
+* {
+	forced-color-adjust: none;
+}
 .geDarkMode {
 	filter: invert(93%) hue-rotate(180deg);
 	background:#151515;
@@ -22,6 +25,10 @@
 }
 .geDarkMode .geColorBtn > div {
 	border-color: #ffffff !important;
+}
+.geDarkMode .geToolbarButton {
+	border-color:#303030 !important;
+	color:#000000;
 }
 .geEditor {
 	position:absolute;

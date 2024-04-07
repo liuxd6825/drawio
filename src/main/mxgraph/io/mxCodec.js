@@ -459,6 +459,22 @@ mxCodec.prototype.decode = function(node, into)
 };
 
 /**
+ * Function: isConstructorAllowed
+ * 
+ * Returns true if the given constructor name is allowed to be
+ * instantiated.
+ *
+ * Parameters:
+ *
+ * name - Name of the constructor to be checked.
+ */
+mxCodec.prototype.isConstructorAllowed = function(name)
+{
+	return mxCodec.allowlist == null || mxUtils.indexOf(
+		mxCodec.allowlist, name) >= 0;
+};
+
+/**
  * Function: getConstructor
  *
  * Returns the constructor for the given object type.
@@ -473,15 +489,9 @@ mxCodec.prototype.getConstructor = function(name)
 	
 	try
 	{
-		if (mxCodec.allowlist == null || mxUtils.indexOf(
-				mxCodec.allowlist, name) >= 0)
+		if (this.isConstructorAllowed(name))
 		{
 			ctor = window[name];
-		}
-		else if (window.console != null)
-		{
-			console.error('mxCodec.getConstructor: ' + name +
-				' not allowed in mxCodec.allowlist');
 		}
 	}
 	catch (err)
