@@ -5070,8 +5070,18 @@ EditorUi.prototype.createToolbar = function(container)
  * Creates a new sidebar for the given container.
  */
 EditorUi.prototype.createSidebar = function(container)
-{
-	return new Sidebar(this, container);
+{ 
+ 
+	let sidebar= new Sidebar(this, container)
+	let newTab = document.createElement("a")
+	newTab.setAttribute("title", "My New Tab")
+	newTab.className="getTitle";
+	sidebar.container.appendChild(newTab)
+	newTab.addEventListener("click", function (){
+		// 这里可以添加你的代码，用于显示tab页的内容
+		alert("click")
+	})
+	return sidebar
 };
 
 /**

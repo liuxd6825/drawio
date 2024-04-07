@@ -30,7 +30,7 @@ Menus.prototype.defaultFontSize = '12';
 /**
  * Sets the default font size.
  */
-Menus.prototype.defaultMenuItems = ['file', 'edit', 'view', 'arrange', 'extras', 'help'];
+Menus.prototype.defaultMenuItems = ['file', 'edit', 'view', 'busData','arrange', 'extras', 'help'];
 
 /**
  * Adds the label menu items to the given menu and parent.
@@ -569,6 +569,13 @@ Menus.prototype.init = function()
 	{
 		this.addMenuItems(menu, ['new', 'open', '-', 'save', 'saveAs', '-', 'import', 'export', '-', 'pageSetup', 'print'], parent);
 	})));
+
+    //lxd 
+    this.put('busData', new Menu(mxUtils.bind(this, function(menu, parent)
+	{
+		this.addMenuItems(menu, ['openData', 'newData', '-', 'subDialog'], parent);
+	})));
+
 	this.put('edit', new Menu(mxUtils.bind(this, function(menu, parent)
 	{
 		this.addMenuItems(menu, ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'duplicate', '-',
@@ -1530,6 +1537,8 @@ Menus.prototype.createPopupMenu = function(menu, cell, evt)
  */
 Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
 {
+    this.addPopupBusDataItems(menu, cell, evt);
+
 	if (this.isShowHistoryItems())
 	{
 		this.addPopupMenuHistoryItems(menu, cell, evt);	
@@ -1549,6 +1558,17 @@ Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
 
 	this.addPopupMenuCellItems(menu, cell, evt);
 	this.addPopupMenuSelectionItems(menu, cell, evt);
+};
+
+/**
+ * Creates the keyboard event handler for the current graph and history.
+ */
+Menus.prototype.addPopupBusDataItems = function(menu, cell, evt)
+{
+	if (this.editorUi.editor.graph.getSelectionCount() == 1)
+	{
+		this.addMenuItems(menu, ['-', 'openData'], null, evt);
+	}
 };
 
 /**

@@ -5963,7 +5963,7 @@ App.prototype.updateButtonContainer = function()
 		{
 			if (file != null)
 			{
-				if (this.shareButton == null && Editor.currentTheme != 'atlas')
+				if (false && this.shareButton == null && Editor.currentTheme != 'atlas')
 				{
 					this.shareButton = document.createElement('button');
 					this.shareButton.className = 'geBtn geShareBtn';

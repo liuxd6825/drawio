@@ -107,7 +107,7 @@ Format.prototype.curved = false;
  */
 Format.prototype.init = function()
 {
-	var ui = this.editorUi;
+    var ui = this.editorUi;
 	var editor = ui.editor;
 	var graph = editor.graph;
 	
@@ -214,6 +214,7 @@ Format.prototype.immediateRefresh = function()
 	
 	var addClickHandler = mxUtils.bind(this, function(elt, panel, index, lastEntry)
 	{
+
 		var clickHandler = mxUtils.bind(this, function(evt)
 		{
 			if (currentLabel != elt)
@@ -360,14 +361,16 @@ Format.prototype.immediateRefresh = function()
 		label.style.borderLeftWidth = '1px';
 		label.style.cursor = 'pointer';
 		label.style.width = ss.cells.length == 0 ? '100%' :
-			(containsLabel ? '50%' : '33.3%');
+			(containsLabel ? '50%' : '25%');
+
 		var label2 = label.cloneNode(false);
 		var label3 = label2.cloneNode(false);
+
 
 		// Workaround for ignored background in IE
 		label2.style.backgroundColor = Format.inactiveTabBackgroundColor;
 		label3.style.backgroundColor = Format.inactiveTabBackgroundColor;
-		
+        
 		// Style
 		if (containsLabel)
 		{
@@ -415,9 +418,30 @@ Format.prototype.immediateRefresh = function()
 		}
 		
 		addClickHandler(label3, arrangePanel, idx++, true);
+
+
+        idx = this.addBusPanel(label, div, ui, addClickHandler,idx);
 	}
 };
 
+ /**
+ * Adds the label menu items to the given menu and parent.
+ */
+Format.prototype.addBusPanel = function(label2, div, ui, addClickHandler, idx){
+    // Business  
+    var busLabel = label2.cloneNode(false);
+    busLabel.style.backgroundColor = Format.inactiveTabBackgroundColor;
+    mxUtils.write(busLabel, "Data");
+    div.appendChild(busLabel)
+    
+    var busPanel = div.cloneNode(false);
+    busPanel.style.display = 'none';
+    this.panels.push(new BusDataPanel(this, ui, busPanel));
+    this.container.appendChild(busPanel);
+
+    addClickHandler(busLabel, busPanel, idx++, true);
+    return idx
+}
 /**
  * Base class for format panels.
  */
@@ -2577,12 +2601,14 @@ ArrangePanel.prototype.addGeometry = function(container)
 					}
 				}));
 				
+                mxUtils.br(div2);
+				mxUtils.br(div2);
+
 				btn.setAttribute('title', mxResources.get('center'));
 				btn.style.width = '134px';
 				btn.style.left = '89px';
 				btn.style.position = 'absolute';
-				mxUtils.br(div2);
-				mxUtils.br(div2);
+
 				div2.appendChild(btn);
 			}
 		}
@@ -3186,7 +3212,8 @@ TextFormatPanel.prototype.addFont = function(container)
 		this.styleButtons(btns);
 		btns[btns.length - 2].style.marginLeft = '10px';
 		
-		container.appendChild(tmp);
+
+        container.appendChild(tmp);
 	}
 	else
 	{
@@ -7224,3 +7251,317 @@ DiagramFormatPanel.prototype.destroy = function()
 		this.gridEnabledListener = null;
 	}
 };
+
+
+BusDataPanel = function(format, editorUi, container)
+{
+	BaseFormatPanel.call(this, format, editorUi, container);
+	this.init();
+};
+
+mxUtils.extend(BusDataPanel, BaseFormatPanel);
+
+/**
+ * Adds the label menu items to the given menu and parent.
+ */
+BusDataPanel.prototype.init = function()
+{
+	var ui = this.editorUi;
+	var ss = ui.getSelectionState();
+	
+	if (!ss.containsLabel && ss.cells.length == 1)
+	{
+       this.container.appendChild(this.addFill(this.createPanel()));
+    }
+};
+
+
+BusDataPanel.prototype.addFill = function(div) {
+    
+    var ui = this.editorUi;
+	var editor = ui.editor;
+	var graph = editor.graph;
+	var ss = ui.getSelectionState();
+
+
+    var title = this.createTitle(mxResources.get('font'));
+	title.style.paddingLeft = '14px';
+	title.style.paddingTop = '10px';
+	title.style.paddingBottom = '6px';
+	div.appendChild(title);
+
+
+	var stylePanel = this.createPanel();
+	stylePanel.style.paddingTop = '2px';
+	stylePanel.style.paddingBottom = '2px';
+	stylePanel.style.position = 'relative';
+	stylePanel.style.marginLeft = '-2px';
+	stylePanel.style.borderWidth = '0px';
+	stylePanel.className = 'geToolbarContainer';
+	
+
+    var cssPanel = stylePanel.cloneNode();
+    
+    var cssMenu = this.editorUi.toolbar.addMenu(mxResources.get('style'),
+        mxResources.get('style'), true, 'formatBlock', cssPanel, null, true);
+    this.addArrow(cssMenu);
+    cssMenu.style.width = '211px';
+    cssMenu.style.alignItems = 'center';
+    cssMenu.style.justifyContent = 'center';
+    cssMenu.style.whiteSpace = 'nowrap';
+    cssMenu.style.overflow = 'hidden';
+    cssMenu.style.margin = '0px';
+    cssMenu.style.position = 'relative';
+
+    var arrow = cssMenu.getElementsByTagName('div')[0];
+    arrow.style.position = 'absolute';
+    arrow.style.right = '2px';
+    div.appendChild(cssPanel);
+	div.appendChild(stylePanel);
+
+    var stylePanel = this.createPanel();
+	stylePanel.style.paddingTop = '2px';
+	stylePanel.style.paddingBottom = '2px';
+	stylePanel.style.position = 'relative';
+	stylePanel.style.marginLeft = '-2px';
+	stylePanel.style.borderWidth = '0px';
+	stylePanel.className = 'geToolbarContainer';
+
+    var btn = mxUtils.button('对话框', function(evt){
+        var div = document.createElement('div');
+        div.style.textAlign = 'center';
+        div.style.overflow = 'hidden';
+        div.style.height = '100%';
+        
+        var hist = document.createElement('div');
+        hist.style.position = 'absolute';
+        hist.style.overflow = 'auto';
+        hist.style.top = '0px';
+        hist.style.left = '0px';
+        hist.style.right = '0px';
+        hist.style.bottom = '104px';
+    
+        div.appendChild(hist);
+        ui.showDialog(div, 300, 200, true, true);
+	})
+    btn.style.marginLeft='12px';
+    btn.style.width = '211px';
+    btn.style.height = '23px';
+    stylePanel.appendChild(btn);
+    div.appendChild(stylePanel);
+
+
+    var stylePanel = this.createPanel();
+	stylePanel.style.paddingTop = '2px';
+	stylePanel.style.paddingBottom = '2px';
+	stylePanel.style.position = 'relative';
+	stylePanel.style.marginLeft = '-2px';
+	stylePanel.style.borderWidth = '0px';
+	stylePanel.className = 'geToolbarContainer';
+
+    var btn = mxUtils.button('浮动窗口', function(evt){
+        if (!this.win){
+            this.win = new DataWindow(ui, 220, document.body.offsetHeight-380, 250, 320);
+        }
+        win.window.setVisible(true);
+	})
+    btn.style.marginLeft='12px';
+    btn.style.width = '211px';
+    btn.style.height = '23px';
+    stylePanel.appendChild(btn);
+    div.appendChild(stylePanel);
+
+    var stylePanel = this.createPanel();
+	stylePanel.style.paddingTop = '2px';
+	stylePanel.style.paddingBottom = '2px';
+	stylePanel.style.position = 'relative';
+	stylePanel.style.marginLeft = '-2px';
+	stylePanel.style.borderWidth = '0px';
+	stylePanel.className = 'geToolbarContainer';
+
+    //添加输入框 
+    var label = this.createTitle("标题");
+    label.style.left="0px";
+    label.style.top="90px";
+    label.style.width="50px";
+    stylePanel.appendChild(label)
+    var input = this.addTextInput(div, 60, 211, 90, function(){
+
+    });
+    stylePanel.appendChild(input)
+    div.appendChild(stylePanel);
+
+    div.style.top= '0px';
+    div.style.left= '0px';
+    div.style.paddingTop = '0px';
+    div.style.paddingLeft = '0px';
+	div.style.paddingBottom = '8px';
+    div.style.paddingRight = '0px';
+
+    return div;
+}
+
+
+/**
+ * 
+ */
+BaseFormatPanel.prototype.addTextInput = function(container, left, width, top, update, step, disableFocus, isFloat)
+{
+	var input = document.createElement('input');
+//	input.style.position = 'absolute';
+	input.style.textAlign = 'left';
+	input.style.top = top+'px';
+	input.style.left = left + 'px';
+	input.style.width = width + 'px';
+	input.style.height = '21px';
+	input.style.borderWidth = '1px';
+	input.style.borderStyle = 'solid';
+	input.style.boxSizing = 'border-box';
+	input.style.paddingTop = '0px';
+	container.appendChild(input);
+	
+	return input;
+};
+
+
+
+/**
+ * Adds the label menu items to the given menu and parent.
+ */
+BusDataPanel.prototype.destroy = function()
+{
+	BaseFormatPanel.prototype.destroy.apply(this, arguments);
+
+	if (this.darkModeChangedListener)
+	{
+		this.editorUi.removeListener(this.darkModeChangedListener);
+		this.darkModeChangedListener = null;
+	}
+};
+
+
+/**
+ * 
+ */
+var DataWindow = function(editorUi, x, y, w, h)
+{
+    var graph = editorUi.editor.graph;
+
+	var div = document.createElement('div');
+	div.style.textAlign = 'center';
+	div.style.overflow = 'hidden';
+	div.style.height = '100%';
+	
+	var hist = document.createElement('div');
+	hist.style.position = 'absolute';
+	hist.style.overflow = 'auto';
+	hist.style.top = '0px';
+	hist.style.left = '0px';
+	hist.style.right = '0px';
+	hist.style.bottom = '104px';
+
+	div.appendChild(hist);
+
+    // <div id="myGrid" style="width: 100%;height: 500px;"  class="ag-theme-balham"></div>
+	var gridDiv = document.createElement('div');
+    gridDiv.className = "ag-theme-balham";
+    gridDiv.style.width="100%";
+    gridDiv.style.height="100%";
+    div.appendChild(gridDiv);
+    var grid = newGrid(gridDiv);
+  
+
+	this.window = new mxWindow(mxResources.get('chatWindowTitle'), div, x, y, w, h, true, true);
+	this.window.minimumSize = new mxRectangle(0, 0, 120, 100);
+	this.window.destroyOnClose = false;
+	this.window.setMaximizable(true);
+	this.window.setResizable(true);
+	this.window.setClosable(true);
+
+	this.window.addListener(mxEvent.DESTROY, mxUtils.bind(this, function()
+	{
+		graph.getModel().removeListener(updateType);
+	}));
+
+	this.window.addListener('show', mxUtils.bind(this, function()
+	{
+		this.window.fit();
+	}));
+
+	editorUi.installResizeHandler(this, true);
+};
+
+var newGrid = function(gridDiv){
+    //定义表格列
+    var columnDefs = [
+        { headerName: '姓名', field: 'name','pinned': 'left',width:120 },
+        { headerName: '性别', field: 'sex' },
+        { headerName: '年龄', field: 'age' },
+        { headerName: '籍贯', field: 'jg' },
+        { headerName: '省份', field: 'sf' },
+        { headerName: '地址', field: 'dz' },
+    ];
+
+    //与列对应的数据; 属性名对应上面的field
+    var data = [
+        { name: '张三', sex: '男', age: '100', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路1号' },
+        { name: '李四', sex: '女', age: '5', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '女', age: '20', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路31号' },
+        { name: '王五', sex: '女', age: '26', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路111号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' },
+        { name: '王五', sex: '男', age: '35', 'jg': '中国', 'sf': '浙江', 'dz': '杭州市古墩路12号' }
+    ];
+
+    //顶部合计行
+    var topRows=[
+    { name: '顶部合计行', sex: 'X', age: '15', 'jg': '中国', 'sf': '顶部1', 'dz': '杭州市文一西路' } 
+    ];
+
+    //底部合计行
+    var botRows=[
+    { name: '置顶行1', sex: 'X', age: '15', 'jg': '中国', 'sf': '顶部1', 'dz': '杭州市文一西路' },
+    { name: '置顶行2', sex: 'X', age: '15', 'jg': '中国', 'sf': '顶部2', 'dz': '杭州市文一西路' }
+    ];
+
+    //将列和数据赋给gridOptions 
+    var gridOptions = {
+        rowHeight :30, //设置行高为30px,默认情况下是25px   
+        columnDefs: columnDefs,
+        rowData: data,
+        onGridReady: function () {
+            //表格创建完成后执行的事件
+            gridOptions.api.sizeColumnsToFit();//调整表格大小自适应
+        },
+        defaultColDef: {
+            editable: true,//单元表格是否可编辑
+            enableRowGroup: true,
+            enablePivot: true,
+            enableValue: true,
+            sortable: true, //开启排序
+            resizable: true,//是否可以调整列大小，就是拖动改变列大小
+            filter: true  //开启刷选
+        },
+        pagination: true,  //开启分页（前端分页）
+        paginationAutoPageSize: true, //根据网页高度自动分页（前端分页）
+        pinnedTopRowData:topRows, //顶部合计行
+        pinnedBottomRowData:botRows ,//顶部合计行
+        //**************设置置顶行样式**********
+        getRowStyle: function (params) { 
+                if (params.node.rowPinned) {   
+                        return {'font-weight': 'bold','color':'red'};
+            }
+        },       
+    };
+    //在dom加载完成后 初始化agGrid完成
+    var grid = new agGrid.Grid(gridDiv, gridOptions);
+    return grid
+}

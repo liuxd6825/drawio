@@ -1950,6 +1950,11 @@ Actions.prototype.init = function()
 			dlg.init();
 		}
 	}, null, null, 'Alt+Shift+Q').isEnabled = isGraphEnabled;
+
+
+    this.addAction('openData', function(){
+        alert("openData")
+    }, null, null, '' ).isEnabled = isGraphEnabled;
 };
 
 /**
